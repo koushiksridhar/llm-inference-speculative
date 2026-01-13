@@ -172,7 +172,7 @@ def logits_adapter(logits, temperature, top_p):
     3. Apply top-p filter
     4. Normalize probabilities
     5. Restore shape
-    """
+    """ 
 
     flag = False
     if logits.ndim==3:
