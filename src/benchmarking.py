@@ -1,7 +1,6 @@
 import yaml
 import pandas as pd
 import torch
-from tqdm import tqdm
 from decoders import baseline_decode, speculative_decode
 from utils import load_models, load_tokenizer, measure_time
 
@@ -23,30 +22,41 @@ def run_benchmark():
     draft_model, target_model = load_models( c_models['draft_model'], c_models['target_model'], device)
     print('[INFO] Loaded models...')
 
+    # -- Warmup --
+    print('[INFO] Running warmup inference...')
+    warmup_prompt = "Hello world!"
+    warmup_inputs = tokenizer(warmup_prompt, return_tensors='pt').to(device)
+
+    with torch.inference_mode():
+        # Target model warmup
+        target_model.generate(**warmup_inputs, max_new_tokens=5)
+        # Draft model warmup
+        draft_model.generate(**warmup_inputs, max_new_tokens=5)
+    print('[INFO] Warmup done.\n')
+
 
     records = []
 
-    for prompt in tqdm(c_benchmarks['prompts']):
+    for prompt in (c_benchmarks['prompts']):
         print(f'[INFO] Prompt: {prompt}')
 
-        baseline_out, t_base = measure_time(
-            baseline_decode, target_model, tokenizer, prompt, c_benchmarks['max_new_tokens']
-        )
-
-        print(f'Ran Baseline @ {t_base}.\nOutput: {baseline_out}')
+        baseline_out, b_metrics = baseline_decode(target_model, tokenizer, prompt, c_benchmarks['max_new_tokens'])
+        print(f"Ran Baseline @ {b_metrics['time']}.\n"
+              f"Output: {baseline_out} \n"
+              f"TPS: {b_metrics['tps']:.2f}")
 
 
         records.append({
             'prompt': prompt,
             'method': 'baseline',
             'draft_k': 0,
-            'time': t_base,
+            'time': b_metrics['time'],
+            'tokens_per_second': b_metrics['tps'],
             'output': baseline_out
         })
 
         for k in c_benchmarks['draft_lengths']:
-            spec_out, t_spec = measure_time(
-                lambda *args: speculative_decode(*args, return_metrics=True),
+            spec_out, s_metrics = speculative_decode(
                 draft_model,
                 target_model,
                 tokenizer,
@@ -55,16 +65,20 @@ def run_benchmark():
                 c_benchmarks['max_new_tokens']
             )
 
-            spec_text, metrics = spec_out
-            print(f"Ran Speculative {k} @ {t_spec}.\nOutput: {spec_text}\nToken Acceptance Rate: {metrics['token_acceptance_rate']}\nFull Accept Rate: {metrics['full_accept_rate']}")            
+            print(
+                f"Ran Speculative {k} @ {s_metrics['time']:.4f}s.\n"
+                f"Output: {spec_out}\n"
+                f"Token Acceptance Rate: {s_metrics['acceptance_rate']:.2%}\n"
+                f"TPS: {s_metrics['tps']:.2f}"
+)
             records.append({
                 'prompt': prompt,
                 'method': 'speculative',
                 'draft_k': k,
-                'time': t_spec,
-                'output': spec_text,
-                'token_acceptance_rate': metrics['token_acceptance_rate'],
-                'full_accept_rate': metrics['full_accept_rate']
+                'output': spec_out,
+                'time': s_metrics["time"],
+                'tokens_per_second': s_metrics["tps"],
+                'token_acceptance_rate': s_metrics["acceptance_rate"]
             })
 
     df = pd.DataFrame(records)

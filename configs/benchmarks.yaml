@@ -1,7 +1,4 @@
 prompts:
-  - "The meaning of life is "
-  - "The future of AI is"
-  - "Translate to Spanish: The weather today is cloudy and"
-  - "Summarize: In the year 2025, the greatest achievement was the happiness of man"
-max_new_tokens: 64
-draft_lengths: [1, 2, 4, 8]
+  - "Below is a piece of Python code to efficienctly compute the n-th Fibonacci number using cache(a lookup table): "
+max_new_tokens: 80
+draft_lengths: [4]
