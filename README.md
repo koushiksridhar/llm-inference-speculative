@@ -65,7 +65,7 @@ The benchmarking framework (`src/benchmarking.py`) provides:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/koushiksridhar/llm-inference-speculative.git
 cd llm-inference
 ```
 
@@ -120,5 +120,6 @@ Several extensions could further enhance this project:
 2. **Scratch-Built Baseline Decoder**: Rewrite the baseline autoregressive decoder from scratch (without using HuggingFace's `generate()` method) to ensure a more 1:1 comparison with the speculative decoder implementation, eliminating potential differences in optimization paths and overhead.
 
 3. **Batch Inference Support**: Extend the implementation to support batch processing, allowing multiple prompts to be processed in parallel. This would enable more efficient utilization of GPU resources and better throughput in production scenarios.
+
 
 4. **Performance Analysis and Visualization Tools**: Develop visualization tools to analyze acceptance patterns, rejection rates by position, and performance characteristics across different draft lengths. This would help identify optimal k values and understand where speculative decoding provides the most benefit.
